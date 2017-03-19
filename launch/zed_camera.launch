@@ -10,13 +10,19 @@
 
     <!-- ZED parameters -->
     <param name="zed_id"                value="$(arg zed_id)" />
-
-    <param name="resolution"            value="2" />
+    <!-- '0': HD2K, '1': HD1080, '2': HD720, '3': VGA -->
+    <param name="resolution"            value="3" />
+    <!-- '0': NONE, '1': PERFORMANCE, '2': MEDIUM, '3': QUALITY -->
     <param name="quality"               value="1" />
+    <!-- '0': FILL, '1': STANDARD
+          FILL: Fully dense depth map, for augmented reality and computational imaging
+          STANDARD: Collision avoidance and navigation-->
     <param name="sensing_mode"          value="1" />
-    <param name="frame_rate"            value="60" />
+    <param name="frame_rate"            value="100" />
     <param name="odometry_db"           value="" />
+    <!-- '0': 32bit float meters, '1': 16bit uchar millimeters -->
     <param name="openni_depth_mode"     value="0" />
+    <!-- '-1': default best GPU -->
     <param name="gpu_id"                value="-1" />
 
     <!-- ROS topic names -->
