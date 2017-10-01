@@ -7,37 +7,44 @@ IF(NOT CMAKE_BUILD_TYPE)
     SET(CMAKE_BUILD_TYPE Release)
 ENDIF(NOT CMAKE_BUILD_TYPE)
 
-find_package(ZED 1.1 REQUIRED)
+function(checkPackage package customMessage)
+    set(varName "${package}_FOUND")
+    if (NOT "${${varName}}")
+        string(REPLACE "_" "-" aptPackage ${package})
+        if("${customMessage}" STREQUAL "")
+            message(FATAL_ERROR "\n\n ${package} is missing, please try to install it with:\n sudo apt-get install ros-$(rosversion -d)-${aptPackage}\n\n")
+        else()
+            message(FATAL_ERROR "\n\n ${customMessage} \n\n")
+        endif()
+    endif()
+endfunction(checkPackage)
 
-#If you have compilation issues, edit OCV_VERSION and CUDA_VERSION according to the following values :
-#ZED SDK 1.1.1 : (https://www.stereolabs.com/developers/#download_anchor)
-#   TX1 Jetpack 2.3 : OpenCV 2.4, CUDA 8.0
-#   TX1 Jetpack < 2.3 : OpenCV 2.4, CUDA 7.0
-#   TK1 : OpenCV 2.4, CUDA 6.5
-#   Ubuntu 14 : OpenCV 3.1, CUDA 7.5
-#   Ubuntu 16 : OpenCV 3.1, CUDA 8.0
+find_package(ZED 2.1)
+checkPackage("ZED" "ZED SDK not found, install it from:\n https://www.stereolabs.com/developers/")
 
 ##For Jetson, OpenCV4Tegra is based on OpenCV2.4
 exec_program(uname ARGS -p OUTPUT_VARIABLE CMAKE_SYSTEM_NAME2)
 if ( CMAKE_SYSTEM_NAME2 MATCHES "aarch64" ) # Jetson TX1
     SET(OCV_VERSION "2.4")
     SET(CUDA_VERSION "8.0")
-    set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
-elseif(CMAKE_SYSTEM_NAME2 MATCHES "armv7l" ) # Jetson TK1
-    SET(OCV_VERSION "2.4")
-    SET(CUDA_VERSION "6.5")
-    set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
+    SET(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
 else() # Ubuntu Desktop
     SET(OCV_VERSION "3.1")
     SET(CUDA_VERSION "8.0")
-    message("*** On Ubuntu 14, change line 30 of CMakeLists.txt to CUDA 7.5")
 endif()
-find_package(OpenCV ${OCV_VERSION} COMPONENTS core highgui imgproc REQUIRED)
-find_package(CUDA ${CUDA_VERSION} REQUIRED)
 
-find_package(PCL REQUIRED)
+find_package(OpenCV ${OCV_VERSION} COMPONENTS core highgui imgproc)
+checkPackage("OPENCV_CORE" "OpenCV core not found, install it from the tutorial at:\n https://www.stereolabs.com/documentation/overview/getting-started/getting-started.html")
+checkPackage("OPENCV_HIGHGUI" "OpenCV highgui not found, install it from the tutorial at:\n https://www.stereolabs.com/documentation/overview/getting-started/getting-started.html")
+checkPackage("OPENCV_IMGPROC" "OpenCV imgproc not found, install it from the tutorial at:\n https://www.stereolabs.com/documentation/overview/getting-started/getting-started.html")
 
-find_package(catkin REQUIRED COMPONENTS
+find_package(CUDA ${CUDA_VERSION})
+checkPackage("CUDA" "CUDA not found, install it from:\n https://developer.nvidia.com/cuda-downloads")
+
+find_package(PCL)
+checkPackage("PCL" "PCL not found, try to install it with:\n sudo apt-get install libpcl1 ros-$(rosversion -d)-pcl-ros")
+
+find_package(catkin COMPONENTS
   image_transport
   roscpp
   rosconsole
@@ -46,7 +53,18 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_ros
   pcl_conversions
   nodelet
+  tf2_geometry_msgs
 )
+
+checkPackage("image_transport" "")
+checkPackage("roscpp" "")
+checkPackage("rosconsole" "")
+checkPackage("sensor_msgs" "")
+checkPackage("dynamic_reconfigure" "")
+checkPackage("tf2_ros" "")
+checkPackage("pcl_conversions" "")
+checkPackage("nodelet" "")
+checkPackage("tf2_geometry_msgs" "")
 
 generate_dynamic_reconfigure_options(
   cfg/Zed.cfg
@@ -61,9 +79,9 @@ catkin_package(
     image_transport
     dynamic_reconfigure
     tf2_ros
+    tf2_geometry_msgs
     pcl_conversions
 )
-
 ###############################################################################
 # INCLUDES
 
@@ -86,8 +104,8 @@ link_directories(${PCL_LIBRARY_DIRS})
 ###############################################################################
 # EXECUTABLE
 
-add_definitions(-std=c++11)# -m64) #-Wall)
-
+add_definitions(-std=c++11)
+list(REMOVE_ITEM PCL_LIBRARIES "vtkproj4") ## if using from pcl package (pcl/vtk bug)
 set(LINK_LIBRARIES
   ${catkin_LIBRARIES}
   ${ZED_LIBRARIES}
